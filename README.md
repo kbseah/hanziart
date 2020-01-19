@@ -16,12 +16,13 @@ You will need to download [Unihan data (zip archive)](http://www.unicode.org/Pub
 
 ## Dependencies
 
-Written in Python3. Requires the following libraries: scikit-image (`skimage`), `scipy`, `matplotlib`, `numpy`, `argparse`, `csv`, `random`, `re`.
+Written in Python3. Requires the following libraries: scikit-image (`skimage`), `scipy`, `matplotlib`, `numpy`, `argparse`, `csv`, `random`, `re`, `collections`.
 
 ## Usage
 
 ```bash
 python3 hanziart.py --image photo.jpeg
+python3 hanziart.py --image photo.jpeg --gradelevel 2 # Use characters up to grade level 2
 python3 hanziart.py --help # Help message
 ```
 
@@ -31,7 +32,6 @@ The only required argument is the path to the image file. Assumes that `Unihan_D
 
 Some ideas for future development
 
- * Use only the top 2000 most commonly used characters, as the majority of characters in Unihan are rare or uncommon variants.
  * Measure the visual density of each character, instead of using stroke count as a proxy.
  * Match the visual pattern of a character to the image, e.g. characters with strong diagonal elements better approximate part of an image with diagonal texture.
  * Use n-grams from actual written text, to better simulate readable text.
