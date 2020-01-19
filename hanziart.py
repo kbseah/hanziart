@@ -4,7 +4,6 @@ from skimage import exposure
 from skimage.transform import rescale
 from skimage.color import rgb2gray
 from scipy import ndimage
-#import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 import csv
@@ -27,6 +26,9 @@ parser.add_argument("-l","--levels",
 parser.add_argument("-c","--color",
                     help="Color image",
                     type=bool,default=True)
+parser.add_argument("-n","--negative",
+                    help="Negative image",
+                    action='store_true')
 parser.add_argument("-o","--out",
                     help="Name of output file",
                     type=str,
@@ -55,7 +57,7 @@ def rescale_img_int(img, maxint: int, color: bool):
         img_rounded = rgb2gray(img_rounded)
     return(img_rounded)
 
-def load_Unihan_data(dictfile,maxgradelevel):
+def load_Unihan_data(dictfile,maxgradelevel: int):
     """Load Unihan strokecount data from file and return dict of chars by
     strokecount
     """
@@ -107,6 +109,8 @@ def img2text(img, tbl:dict, outfile):
 # Read image from file
 print(" ".join(["... Reading image from file",args.image]))
 img = ndimage.imread(args.image)
+if (args.negative):
+    img = np.invert(img)
 # Read Unihan table and key by strokecount
 print(" ".join(["... Loading Unihan data from file",args.dict]))
 strokedict = load_Unihan_data(args.dict,args.gradelevel)
