@@ -10,6 +10,7 @@ import argparse
 import csv
 from random import choice
 from re import match
+from collections import defaultdict
 
 parser = argparse.ArgumentParser(description="Convert image to hanziart",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -34,7 +35,9 @@ parser.add_argument("-d","--dict",
                     help="Path to Unihan_DictionaryLikeData.txt",
                     type=str,
                     default="./Unihan_DictionaryLikeData.txt")
-
+parser.add_argument("-g","--gradelevel",
+                    help="Use characters up to this primary school grade level (Hong Kong) only. Range 1 to 6. Other values mean use all characters.",
+                    type=int, default=6)
 args = parser.parse_args()
 
 def resize_img_width(img, width: int):
@@ -52,25 +55,30 @@ def rescale_img_int(img, maxint: int, color: bool):
         img_rounded = rgb2gray(img_rounded)
     return(img_rounded)
 
-def load_Unihan_data(dictfile):
+def load_Unihan_data(dictfile,maxgradelevel):
     """Load Unihan strokecount data from file and return dict of chars by
     strokecount
     """
-    outdict = {}
+    outdict = defaultdict(list)
     with open(dictfile) as tsvfile:
         tsvreader = csv.reader(tsvfile,delimiter="\t")
-        for line in tsvreader:
-            if len(line) == 3 and line[1] == "kTotalStrokes" and match("^\d+$",line[2]):
-                if line[2] in outdict:
-                    try:
-                        outdict[line[2]].append(line[0])
-                    except IndexError:
-                        outdict['NA'].append(line[0])
-                else:
-                    try:
-                        outdict[line[2]] = [line[0]]
-                    except IndexError:
-                        outdict['NA'].append(line[0])
+        if maxgradelevel in range(1,7): # kGradeLevel only from 1 to 6 inclusive
+            # Dict of character stroke counts and grade levels
+            char_grade_count_dict = defaultdict(lambda: defaultdict(int)) 
+            for line in tsvreader:
+                if len(line) == 3 and line[1] == "kTotalStrokes" and match("^\d+$",line[2]):
+                    char_grade_count_dict[line[0]]['strokes'] = line[2]
+                elif len(line) == 3 and line[1] == "kGradeLevel" and match("^\d+$",line[2]):
+                    char_grade_count_dict[line[0]]['gradelevel'] = line[2]
+            # Go through dictionary and report characters keyed by stroke count
+            for char in char_grade_count_dict.keys():
+                if int(char_grade_count_dict[char]['gradelevel']) in range(1,maxgradelevel+1):
+                    # Cannot use <= maxgradelevel because undefined grade level is automatically 0
+                    outdict[char_grade_count_dict[char]['strokes']].append(char)
+        else: # Ignore kGradeLevel parameter
+            for line in tsvreader:
+                if len(line) == 3 and line[1] == "kTotalStrokes" and match("^\d+$",line[2]):
+                    outdict[line[2]].append(line[0])
     return(outdict)
 
 def make_uchr(code: str):
@@ -101,7 +109,7 @@ print(" ".join(["... Reading image from file",args.image]))
 img = ndimage.imread(args.image)
 # Read Unihan table and key by strokecount
 print(" ".join(["... Loading Unihan data from file",args.dict]))
-strokedict = load_Unihan_data(args.dict)
+strokedict = load_Unihan_data(args.dict,args.gradelevel)
 # Rescale intensity to maximize dynamic range
 img = exposure.rescale_intensity(img)
 # Resize and rescale image
